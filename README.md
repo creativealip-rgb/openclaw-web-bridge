@@ -161,6 +161,118 @@ Edit `backend/src/middleware/auth.js`:
 
 Frontend pakai Tailwind CSS (default). Edit di `frontend/src/components/Chat.jsx`
 
+## 🚀 Deployment ke VPS (Production)
+
+### Prerequisites
+- VPS dengan Ubuntu 20.04/22.04
+- Domain yang sudah pointing ke VPS (savelink.web.id)
+- Port 80 dan 443 terbuka
+
+### Quick Deploy dengan Docker
+
+1. **SSH ke VPS**:
+```bash
+ssh user@vps-ip
+```
+
+2. **Clone repo**:
+```bash
+cd /opt
+git clone https://github.com/creativealip-rgb/openclaw-web-bridge.git
+cd openclaw-web-bridge
+```
+
+3. **Jalankan deploy script**:
+```bash
+chmod +x deploy.sh
+sudo ./deploy.sh
+```
+
+Script akan otomatis:
+- Install Docker & Docker Compose
+- Build containers
+- Setup SSL dengan Let's Encrypt
+- Konfigurasi Nginx reverse proxy
+- Setup auto-renewal SSL
+
+### Manual Deploy
+
+1. **Install Docker & Docker Compose**:
+```bash
+curl -fsSL https://get.docker.com | sh
+sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+sudo chmod +x /usr/local/bin/docker-compose
+```
+
+2. **Setup environment**:
+```bash
+cp .env.example .env
+nano .env  # Edit sesuai kebutuhan
+```
+
+3. **Build & run**:
+```bash
+docker-compose up -d --build
+```
+
+4. **Setup SSL (Let's Encrypt)**:
+```bash
+docker-compose run --rm certbot certonly --webroot \
+  --webroot-path=/var/www/certbot \
+  --email admin@savelink.web.id \
+  --agree-tos --no-eff-email \
+  -d savelink.web.id -d www.savelink.web.id
+```
+
+### Struktur Docker
+
+```
+┌─────────────────────────────────────┐
+│           Nginx (80/443)            │
+│     SSL + Reverse Proxy             │
+└──────────────┬──────────────────────┘
+               │
+    ┌──────────┴──────────┐
+    │                     │
+┌───▼────┐          ┌────▼────┐
+│Frontend│          │ Backend │
+│(:5173) │          │ (:3000) │
+└────────┘          └─────────┘
+```
+
+### Update Deployment
+
+```bash
+cd /opt/openclaw-web-bridge
+git pull
+docker-compose down
+docker-compose up -d --build
+```
+
+### Troubleshooting
+
+**Cek logs**:
+```bash
+docker-compose logs -f
+docker-compose logs -f backend
+docker-compose logs -f frontend
+```
+
+**Restart services**:
+```bash
+docker-compose restart
+docker-compose restart nginx
+```
+
+**SSL issues**:
+```bash
+# Renew manual
+docker-compose run --rm certbot renew
+
+# Force renew
+docker-compose run --rm certbot certonly --force-renew ...
+```
+
 ## 📄 License
 
 MIT
